@@ -2,68 +2,103 @@
 
 #[ink::contract]
 mod auction {
-    use core::u128;
+    use core::{u128, default};
     use ink::{contract_ref, primitives::AccountId as OtherAccountId};
-    use psp34::{ Id, PSP34Data, PSP34Event };
+    use psp34::Id;
+    use scale_info::TypeInfo;
     use ink::storage::Mapping;
+    use ink::storage::traits::StorageLayout;
+
+    #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
+    #[cfg_attr(feature = "std", derive(::scale_info::TypeInfo))]
+    pub enum Status {
+        /// The auction has not started.
+        NotStarted,
+        /// Auction has started
+        Started,
+        /// A shapshot was taken of the highest bid on this block
+        BlockSnapshot(BlockNumber),
+        /// Auction has ended
+        Ended,
+    }
 
     // Auction struct is storing all data types for an auction
     #[ink(storage)]
+    // #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, scale::Encode, scale::Decode)]
+    // #[cfg_attr(feature = "std", derive(scale_info::TypeInfo, StorageLayout))]
     pub struct Auction {
         /// Seller address
         seller: AccountId, 
-        /// This is the start time of the bid
-        start_time: Timestamp,
+        /// This is the starting blocknumber for the auction
+        start_block: BlockNumber,
+        to_block: BlockNumber
         /// Address of the NFT that is being bid on
         nft_contract: AccountId,
         /// The Id or number of the NFT
-        nft_id: Id,
+        nft_id: u32,
         /// The Seller's minimum starting bid price
         min_bid: Balance,
         /// This will be a timer counts down to the end of the auction
-        auction_duration: Timestamp,
+        auction_duration: BlockNumber,
         /// Keeps track of the current bids
         /// Maps bidders address to their bid 
         bids: Mapping<AccountId, Balance>,
+        highest_bid: Balance,
         /// Keeps track of the current hightest bid
         /// Option is waiting for the address of the highest bidder
-        highest_bid_address: Option<AccountId>,
+        highest_bidder: Option<AccountId>,
         /// Maps the winning bid to the winning address  
-        winner: Mapping<AccountId, Balance>,
+        winner: Option<AccountId>,
         /// Checks if auction has started
         started: bool,
         /// Checks if auction has ended 
         ended: bool, 
     }
 
-    // Keeping track of the bids
-    pub struct Auction_bids {
-        highestbidder: AccountId, // Highest bidders address
-    }
-
     impl Auction {
         #[ink(constructor)]
         pub fn new(
             nft_contract: AccountId,
-            nft_id: Id,
+            nft_id: u32,
             min_bid: Balance,
-            auction_duration: Timestamp,
+            start_block: Option<BlockNumber>,
+            to_block: BlockNumber,
 
         ) -> Self {
             let caller = Self::env().caller();
-            let current_time = Self::env().block_timestamp();
+            let current_block = Self::env().block_number();
+            /// Auction starts on the following block
+            let start_auction = start_block.unwrap_or(current_block + 1);
+
+            assert!(
+                start_auction > current_block,
+                "Auction is not allowed to be scheduled on future blocks"
+            );
             Self {
                 seller: caller,
-                start_time: current_time,
+                nft_contract,
+                nft_id,
+                min_bid,
+                start_block: current_block,
+                to_block: 0,
                 auction_duration,
+                bids: Mapping::new(),
+                highest_bid: 0,
+                highest_bidder: None,
+                winner: None,
                 started: true,
                 ended: false,
             }
         }
 
-        #[ink(message)]
+        #[ink(message, payable)]        
         pub fn place_bid(&self) {
-            
+            &mut self,
+            bidder: AccountId,
+            bid: Balance,
+            current_time: Timestamp,
+        } -> Result<(), Error> {
+
         }
     }
 }
