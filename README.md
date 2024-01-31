@@ -1,2 +1,2 @@
-### Ink Auction contract
-This smart contract allows users to auction off their NFTs. 
+### Ink Blind Auction contract
+This smart contract allows users to auction off their NFTs, but there a catch. The auction is blind, meaning that the bidders do not know what the current highest bid is. This is done to prevent sniping, where a bidder waits until the last second to place a higher bid.
